@@ -1,3 +1,6 @@
+import 'dart:isolate';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_chip_8/machine.dart';
 import 'package:flutter_chip_8/rom_loader.dart';
@@ -13,9 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Chip 8',
       theme: ThemeData(
-
         primarySwatch: Colors.blue,
-
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: MyHomePage(title: 'Chip 8'),
@@ -33,43 +34,103 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> debugInfo = List<String>();
+  static List<String> debugInfo = List<String>();
+  SendPort _machineSender;
+  ReceivePort _receivePort;
   String text = '';
+  Isolate _isolate;
+  bool started = false;
 
-  void _incrementCounter() {
-    RomLoader loader = RomLoader();
-    Machine machine = Machine();
+  void _startSim() async {
+    if (!started) {
+      _receivePort = ReceivePort();
+      debugInfo.clear();
+      var rom = await RomLoader().loadAsset();
+      _isolate =
+          await Isolate.spawn(_startEmulation, [_receivePort.sendPort, rom]);
+      _receivePort.listen(_handleMessage);
+      started = true;
+    }
+  }
 
-    loader.loadTestRom((val) => machine.process(
-          val,
-          debugInfo,
-          () => setState(() {
-            text = "";
-            for (var i = 0; i < debugInfo.length; i++) {
-              text = text + debugInfo[i] + "\n";
-            }
-          }),
-        ));
+  static void _startEmulation(dynamic data) async {
+    SendPort isolateToMainStream = data[0];
+    var rom = data[1];
+    ReceivePort mainToIsolateStream = ReceivePort();
+    isolateToMainStream.send(mainToIsolateStream.sendPort);
+    var machine = Machine();
+
+    machine.process(rom, isolateToMainStream, mainToIsolateStream);
+  }
+
+  void _handleMessage(dynamic data) {
+    if (data is SendPort) {
+      _machineSender = data;
+    }
+    if (data == Status.Running) {
+      setState(() {
+        text = "Simulation started";
+      });
+      started = true;
+    } else if (data == Status.Stopped) {
+      _showState();
+      _receivePort.close();
+      _isolate.kill(priority: Isolate.immediate);
+      _isolate = null;
+      started = false;
+    } else if (data == Status.Stop) {
+      // do nothing this is handle on emulator side
+
+    } else {
+      debugInfo.add(data.toString());
+      //_showState();
+    }
+  }
+
+  _showState() {
+    setState(() {
+      text = "";
+      for (var i = 0; i < debugInfo.length; i++) {
+        text += debugInfo[i] + "\n";
+      }
+    });
+  }
+
+  void _stopSim() {
+    if (started) {
+      _machineSender.send(Status.Stop);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-
-        child: SingleChildScrollView(child: Text(text))
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        appBar: AppBar(
+          // Here we take the value from the MyHomePage object that was created by
+          // the App.build method, and use it to set our appbar title.
+          title: Text(widget.title),
+        ),
+        body: Center(child: SingleChildScrollView(child: Text(text))),
+        floatingActionButton: Row(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(2.0),
+              child: FloatingActionButton(
+                  onPressed: _startSim,
+                  tooltip: 'Start',
+                  backgroundColor: Colors.green,
+                  child: Icon(Icons.play_arrow)),
+            ),
+            Padding(
+                padding: EdgeInsets.all(2.0),
+                child: FloatingActionButton(
+                    onPressed: _stopSim,
+                    backgroundColor: Colors.red,
+                    tooltip: 'Stop',
+                    child: Icon(Icons.stop))),
+          ],
+          mainAxisAlignment: MainAxisAlignment.end,
+        ) // This trailing comma makes auto-formatting nicer for build methods.
+        );
   }
 }
