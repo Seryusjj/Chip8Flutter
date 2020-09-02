@@ -72,10 +72,7 @@ enum Status {
   Running,
 }
 
-
-
 class Machine {
-
 
   Uint8List mem; // cpu available memory
   Uint16List _pc_sp_i;
@@ -164,7 +161,7 @@ class Machine {
       mem[i + 0x200] = rom.getUint8(i);
     }
     // program loaded into machine mem debug text
-    String opcodes = "";
+    //String opcodes = "";
     // start processing
     var op = OpCode(0);
     Future<bool> hasNext = inbox.moveNext();
@@ -188,15 +185,10 @@ class Machine {
       // opcodes += op.value.toRadixString(16);
       pc++;
 
-      if (op != null && op.value != 0) {
-        var opFunction = operations[op.p];
-        // opFunction will be null of operation not found
-        // so an exception will raise that is ok
-        opFunction(this, op);
-      }
+      runOperation(this, op);
     }
 
-    port.send(opcodes);
+    //port.send(opcodes);
     port.send(Status.Stopped);
   }
 }

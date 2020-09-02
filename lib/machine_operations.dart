@@ -3,14 +3,23 @@ import 'machine.dart';
 
 typedef OpCall = void Function(Machine mac, OpCode code);
 
-/// The only element publicly exposed is this operations map
-Map<int, OpCall> operations = {
+/// The only element publicly exposed is this function that run the op code
+runOperation(Machine mac, OpCode op) {
+  if (op != null && op.value != 0) {
+    var opFunction = _operations[op.p];
+    // opFunction will be null if operation is not found
+    // so an exception will be raise when trying to run it
+    opFunction(mac, op);
+  }
+}
+
+Map<int, OpCall> _operations = {
   0: (Machine mac, OpCode code) => {
     // super chip extension
     if (code.y == 0xC)
-      {_missing}
+      {_missing(mac, code)}
     else
-      _kk_SubOperation[code.kk]
+      _kk_SubOperation[code.kk](mac, code)
   },
   1: _jp,
   2: _call,
@@ -19,14 +28,14 @@ Map<int, OpCall> operations = {
   5: _se_xy,
   6: _ld_xkk,
   7: _add_xkk,
-  8: (Machine mac, OpCode code) => _n_SubOperation[code.n],
+  8: (Machine mac, OpCode code) => _n_SubOperation[code.n](mac, code),
   9: _sne_xy,
   0xA: _ld_innn,
   0xB: _jp_v0nnn,
   0xC: _rnd_xkk,
   0xD: _drw_xyn,
-  0xE: (Machine mac, OpCode code) => _kk_SubOperation[code.kk],
-  0xF: (Machine mac, OpCode code) => _kk_SubOperation[code.kk],
+  0xE: (Machine mac, OpCode code) => _kk_SubOperation[code.kk](mac, code),
+  0xF: (Machine mac, OpCode code) => _kk_SubOperation[code.kk](mac, code),
 };
 
 Map<int, OpCall> _n_SubOperation = {
