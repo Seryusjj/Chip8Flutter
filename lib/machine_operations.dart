@@ -210,7 +210,7 @@ _ld_innn(Machine mac, OpCode op) {
 }
 
 _jp_v0nnn(Machine mac, OpCode op) {
-  mac.pc = (mac.V[0] + op.nnn) /*& 0xFFF*/;
+  mac.pc = (mac.V[0] + op.nnn) & 0xFFF;
   _debugPrint("JP V[0], ${op.nnn.toRadixString(16)}");
 }
 

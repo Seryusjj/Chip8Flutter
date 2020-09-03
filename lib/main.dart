@@ -7,9 +7,6 @@ import 'package:flutter_chip_8/rom_loader.dart';
 
 import 'screen.dart';
 
-
-
-
 void main() {
   runApp(MyApp());
 }
@@ -70,24 +67,25 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleMessage(dynamic data) {
     if (data is SendPort) {
       _machineSender = data;
-    }
-    if (data == Status.Running) {
-      setState(() {
-        text = "Simulation started";
-      });
-      started = true;
-    } else if (data == Status.Stopped) {
-      _showState();
-      _receivePort.close();
-      _isolate.kill(priority: Isolate.immediate);
-      _isolate = null;
-      started = false;
-    } else if (data == Status.Stop) {
-      // do nothing this is handle on emulator side
-
     } else {
-      debugInfo.add(data.toString());
-      //_showState();
+      if (data == Status.Running) {
+        setState(() {
+          text = "Simulation started";
+        });
+        started = true;
+      } else if (data == Status.Stopped) {
+        _showState();
+        _receivePort.close();
+        _isolate.kill(priority: Isolate.immediate);
+        _isolate = null;
+        started = false;
+      } else if (data == Status.Stop) {
+        // do nothing this is handle on emulator side
+
+      } else {
+        debugInfo.add(data.toString());
+        //_showState();
+      }
     }
   }
 
@@ -109,7 +107,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(child: Screen(), alignment: Alignment.topCenter, margin: EdgeInsets.fromLTRB(0,60,0,0)),
+        body: Container(
+            child: Screen(),
+            alignment: Alignment.topCenter,
+            margin: EdgeInsets.fromLTRB(0, 60, 0, 0)),
         floatingActionButton: Row(
           children: [
             Padding(
