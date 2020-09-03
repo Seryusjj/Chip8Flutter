@@ -19,10 +19,10 @@ class Screen extends StatefulWidget {
 class ScreenState extends State<Screen> {
   Image image;
 
-  updateImage(img) {
-    setState(() {
-      image = img;
-    });
+  updateImage(Image img) {
+    precacheImage(img.image, context).then((value) => setState(() {
+          image = img;
+        }));
   }
 
   @override

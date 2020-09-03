@@ -199,7 +199,7 @@ class Machine {
 
       runOperation(this, op);
 
-      //update screen render each 16 milliseconds
+      //update screen 60fps
       if (watch.elapsedMilliseconds >= 16) {
         sport.send([Operations.UpdateScreen, genImage()]);
         watch.reset();
@@ -218,13 +218,10 @@ class Machine {
     for (int i = 0; i < 32 * 64 * 3; i += 3) {
       imageData[i] = prevColor; //blue
       imageData[i + 1] = 0; //green
-      imageData[i + 2] = 0; //red
+      imageData[i + 2] = 255-prevColor; //red
     }
     var data = createBitmap(64, 32, imageData);
     var img = Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
-
-    Completer<ImageProvider> completer = Completer<ImageProvider>();
-    completer.complete(img.image);
     return img;
   }
 }
