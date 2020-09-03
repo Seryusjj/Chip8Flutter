@@ -97,7 +97,7 @@ class Machine {
     _pc_sp_i[1] = val;
   }
 
-  Uint8List v; // 16 registries for general purpose
+  Uint8List V; // 16 registries for general purpose
   // special directional registry
   int get i {
     return _pc_sp_i[1];
@@ -131,7 +131,7 @@ class Machine {
 
   _init() {
     mem = Uint8List(4096);
-    v = Uint8List(16);
+    V = Uint8List(16);
     stack = Uint16List(16);
     _pc_sp_i = Uint16List(2); //0 pc, 1 sp
     pc = 0x200;
@@ -152,28 +152,29 @@ class Machine {
 
   SendPort port;
 
-  process(ByteData rom, SendPort sport, ReceivePort recv) async {
+  run(ByteData rom, SendPort sport, ReceivePort recv) async {
     StreamIterator<dynamic> inbox = new StreamIterator<dynamic>(recv);
+    Future<bool> hasNext = inbox.moveNext();
     port = sport;
-    port.send(Status.Running);
+    var op = OpCode(0);
+
     // load rom in memory, first 512 positions are reserved
     for (var i = 0; i < rom.lengthInBytes; i++) {
       mem[i + 0x200] = rom.getUint8(i);
     }
-    // program loaded into machine mem debug text
-    //String opcodes = "";
+
+    // rom loaded into machine mem debug text
+    port.send(Status.Running);
+
+
     // start processing
-    var op = OpCode(0);
-    Future<bool> hasNext = inbox.moveNext();
     var duration = Duration(microseconds: 1);
     while (!this.stop) {
-      // message polling (kind of) this might be heavy too much boilerplate ...
-      // cant find better way to communicate with isolate process
-      bool next = await hasNext.timeout(duration, onTimeout: () => false);
-      while (next) {
+      // message polling (kind of) cant find better way to communicate
+      // with flutter isolates
+      while (await hasNext.timeout(duration, onTimeout: () => false)) {
         _handleMessage(inbox.current);
         hasNext = inbox.moveNext();
-        next = await hasNext.timeout(duration, onTimeout: () => false);
       }
 
       if (pc >= mem.length - 1) {

@@ -1,9 +1,14 @@
 import 'dart:isolate';
-import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chip_8/machine.dart';
 import 'package:flutter_chip_8/rom_loader.dart';
+
+import 'screen.dart';
+
+
+
 
 void main() {
   runApp(MyApp());
@@ -59,8 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ReceivePort mainToIsolateStream = ReceivePort();
     isolateToMainStream.send(mainToIsolateStream.sendPort);
     var machine = Machine();
-
-    machine.process(rom, isolateToMainStream, mainToIsolateStream);
+    machine.run(rom, isolateToMainStream, mainToIsolateStream);
   }
 
   void _handleMessage(dynamic data) {
@@ -105,12 +109,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          // Here we take the value from the MyHomePage object that was created by
-          // the App.build method, and use it to set our appbar title.
-          title: Text(widget.title),
-        ),
-        body: Center(child: SingleChildScrollView(child: Text(text))),
+        body: Container(child: Screen(), alignment: Alignment.topCenter, margin: EdgeInsets.fromLTRB(0,60,0,0)),
         floatingActionButton: Row(
           children: [
             Padding(
