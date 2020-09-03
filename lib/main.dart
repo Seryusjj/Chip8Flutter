@@ -1,10 +1,12 @@
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chip_8/machine.dart';
 import 'package:flutter_chip_8/rom_loader.dart';
 
+import 'bitmap.dart';
 import 'screen.dart';
 
 void main() {
@@ -43,6 +45,24 @@ class _MyHomePageState extends State<MyHomePage> {
   Isolate _isolate;
   bool started = false;
 
+  Image screenImage;
+
+  _MyHomePageState() {
+    screenImage = genImage();
+  }
+
+  Image genImage() {
+    //use this.screen to gen the picture
+    var imageData = Uint8List(32 * 64 * 3);
+    for (int i = 0; i < 32 * 64 * 3; i += 3) {
+      imageData[i] = 0; //blue
+      imageData[i + 1] = 0; //green
+      imageData[i + 2] = 255; //red
+    }
+    var data = createBitmap(64, 32, imageData);
+    return Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
+  }
+
   void _startSim() async {
     if (!started) {
       _receivePort = ReceivePort();
@@ -59,35 +79,36 @@ class _MyHomePageState extends State<MyHomePage> {
     SendPort isolateToMainStream = data[0];
     var rom = data[1];
     ReceivePort mainToIsolateStream = ReceivePort();
-    isolateToMainStream.send(mainToIsolateStream.sendPort);
+    isolateToMainStream
+        .send([Operations.Communication, mainToIsolateStream.sendPort]);
     var machine = Machine();
     machine.run(rom, isolateToMainStream, mainToIsolateStream);
   }
 
+  var c = 0;
   void _handleMessage(dynamic data) {
-    if (data is SendPort) {
-      _machineSender = data;
-    } else {
-      if (data == Status.Running) {
-        setState(() {
-          text = "Simulation started";
-        });
-        started = true;
-      } else if (data == Status.Stopped) {
+    switch(data[0]) {
+      case Operations.Communication:
+        _machineSender = data[1];
+        break;
+      case Operations.Stopped:
         _showState();
         _receivePort.close();
         _isolate.kill(priority: Isolate.immediate);
         _isolate = null;
         started = false;
-      } else if (data == Status.Stop) {
-        // do nothing this is handle on emulator side
-
-      } else {
-        debugInfo.add(data.toString());
-        //_showState();
-      }
+        break;
+      case Operations.Running:
+        break;
+      case Operations.UpdateScreen:
+        _key.currentState.updateImage(data[1]);
+        print("Update screen" + c.toString());
+        c++;
+        break;
     }
   }
+
+
 
   _showState() {
     setState(() {
@@ -100,15 +121,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _stopSim() {
     if (started) {
-      _machineSender.send(Status.Stop);
+      _machineSender.send([Operations.Stop]);
     }
   }
+  final _key = GlobalKey<ScreenState>();
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-            child: Screen(),
+            child: Screen(key: _key),
             alignment: Alignment.topCenter,
             margin: EdgeInsets.fromLTRB(0, 60, 0, 0)),
         floatingActionButton: Row(

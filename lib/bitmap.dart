@@ -1,11 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:flutter/cupertino.dart';
 
 var _BITMAP_FILE_HEADER_SIZE_BYTES = 14;
 var _BITMAP_INFO_HEADER_SIZE_BYTES = 40;
 
-int writeSize2(Uint8List res, int offset, int val) {
+int _writeSize2(Uint8List res, int offset, int val) {
   res[offset] = val >> 8;
   offset++;
   res[offset] = val & 0xFF;
@@ -13,7 +12,7 @@ int writeSize2(Uint8List res, int offset, int val) {
   return offset;
 }
 
-int writeSize4(Uint8List res, int offset, int val) {
+int _writeSize4(Uint8List res, int offset, int val) {
   res[offset] = val >> 24;
   offset++;
   res[offset] = (val >> 16) & 0xFF;
@@ -23,10 +22,9 @@ int writeSize4(Uint8List res, int offset, int val) {
   res[offset] = (val) & 0xFF;
   offset++;
   return offset;
-
 }
 
-int writeSize2Reverse(Uint8List res, int offset, int val) {
+int _writeSize2Reverse(Uint8List res, int offset, int val) {
   res[offset] = val & 0xFF;
   offset++;
   res[offset] = val >> 8;
@@ -34,7 +32,7 @@ int writeSize2Reverse(Uint8List res, int offset, int val) {
   return offset;
 }
 
-int writeSize4Reverse(Uint8List res, int offset, int val) {
+int _writeSize4Reverse(Uint8List res, int offset, int val) {
   res[offset] = (val) & 0xFF;
   offset++;
   res[offset] = (val >> 8) & 0xFF;
@@ -52,22 +50,23 @@ class _FileHeader {
   int bfReserved1 = 0; // 2 bytes
   int bfReserved2 = 0; // 2 bytes
   int bfOffBits = 0; // 4 bytes
-  write (Uint8List res, int offset) {
-    offset = writeSize2(res, offset, bfType);
-    offset = writeSize4(res, offset, bfSize);
-    offset = writeSize2(res, offset, bfReserved1);
-    offset = writeSize2(res, offset, bfReserved2);
-    offset = writeSize4(res, offset, bfOffBits);
+  write(Uint8List res, int offset) {
+    offset = _writeSize2(res, offset, bfType);
+    offset = _writeSize4(res, offset, bfSize);
+    offset = _writeSize2(res, offset, bfReserved1);
+    offset = _writeSize2(res, offset, bfReserved2);
+    offset = _writeSize4(res, offset, bfOffBits);
     assert(() {
       return offset == _BITMAP_FILE_HEADER_SIZE_BYTES;
     }());
   }
-  writeReverse (Uint8List res, int offset) {
-    offset = writeSize2Reverse(res, offset, bfType);
-    offset = writeSize4Reverse(res, offset, bfSize);
-    offset = writeSize2Reverse(res, offset, bfReserved1);
-    offset = writeSize2Reverse(res, offset, bfReserved2);
-    offset = writeSize4Reverse(res, offset, bfOffBits);
+
+  writeReverse(Uint8List res, int offset) {
+    offset = _writeSize2Reverse(res, offset, bfType);
+    offset = _writeSize4Reverse(res, offset, bfSize);
+    offset = _writeSize2Reverse(res, offset, bfReserved1);
+    offset = _writeSize2Reverse(res, offset, bfReserved2);
+    offset = _writeSize4Reverse(res, offset, bfOffBits);
     assert(() {
       return offset == _BITMAP_FILE_HEADER_SIZE_BYTES;
     }());
@@ -86,36 +85,39 @@ class _InfoHeader {
   int biYPelsPerMeter = 0; // 4 bytes
   int biClrUsed = 0; // 4 bytes
   int biClrImportant = 0; // 4 bytes
-  write (Uint8List res, int offset) {
-    offset = writeSize4(res, offset, biSize);
-    offset = writeSize4(res, offset, biWidth);
-    offset = writeSize4(res, offset, biHeight);
-    offset = writeSize2(res, offset, biPlanes);
-    offset = writeSize2(res, offset, biBitCount);
-    offset = writeSize4(res, offset, biCompression);
-    offset = writeSize4(res, offset, biSizeImage);
-    offset = writeSize4(res, offset, biXPelsPerMeter);
-    offset = writeSize4(res, offset, biYPelsPerMeter);
-    offset = writeSize4(res, offset, biClrUsed);
-    offset = writeSize4(res, offset, biClrImportant);
+  write(Uint8List res, int offset) {
+    offset = _writeSize4(res, offset, biSize);
+    offset = _writeSize4(res, offset, biWidth);
+    offset = _writeSize4(res, offset, biHeight);
+    offset = _writeSize2(res, offset, biPlanes);
+    offset = _writeSize2(res, offset, biBitCount);
+    offset = _writeSize4(res, offset, biCompression);
+    offset = _writeSize4(res, offset, biSizeImage);
+    offset = _writeSize4(res, offset, biXPelsPerMeter);
+    offset = _writeSize4(res, offset, biYPelsPerMeter);
+    offset = _writeSize4(res, offset, biClrUsed);
+    offset = _writeSize4(res, offset, biClrImportant);
     assert(() {
-      return offset == _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+      return offset ==
+          _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
     }());
   }
-  writeReverse (Uint8List res, int offset) {
-    offset = writeSize4Reverse(res, offset, biSize);
-    offset = writeSize4Reverse(res, offset, biWidth);
-    offset = writeSize4Reverse(res, offset, biHeight);
-    offset = writeSize2Reverse(res, offset, biPlanes);
-    offset = writeSize2Reverse(res, offset, biBitCount);
-    offset = writeSize4Reverse(res, offset, biCompression);
-    offset = writeSize4Reverse(res, offset, biSizeImage);
-    offset = writeSize4Reverse(res, offset, biXPelsPerMeter);
-    offset = writeSize4Reverse(res, offset, biYPelsPerMeter);
-    offset = writeSize4Reverse(res, offset, biClrUsed);
-    offset = writeSize4Reverse(res, offset, biClrImportant);
+
+  writeReverse(Uint8List res, int offset) {
+    offset = _writeSize4Reverse(res, offset, biSize);
+    offset = _writeSize4Reverse(res, offset, biWidth);
+    offset = _writeSize4Reverse(res, offset, biHeight);
+    offset = _writeSize2Reverse(res, offset, biPlanes);
+    offset = _writeSize2Reverse(res, offset, biBitCount);
+    offset = _writeSize4Reverse(res, offset, biCompression);
+    offset = _writeSize4Reverse(res, offset, biSizeImage);
+    offset = _writeSize4Reverse(res, offset, biXPelsPerMeter);
+    offset = _writeSize4Reverse(res, offset, biYPelsPerMeter);
+    offset = _writeSize4Reverse(res, offset, biClrUsed);
+    offset = _writeSize4Reverse(res, offset, biClrImportant);
     assert(() {
-      return offset == _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+      return offset ==
+          _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
     }());
   }
 }
@@ -150,11 +152,13 @@ Uint8List createBitmap(int w, int h, Uint8List rgb) {
   // This value should be values of BM letters
   bfh.bfType = 0x4D42;
   // Offset to the RGBQUAD
-  bfh.bfOffBits = _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+  bfh.bfOffBits =
+      _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
 
   // Total size of image including size of headers
-  bfh.bfSize =
-      _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES + rgb.length;
+  bfh.bfSize = _BITMAP_FILE_HEADER_SIZE_BYTES +
+      _BITMAP_INFO_HEADER_SIZE_BYTES +
+      rgb.length;
 
   Uint8List res = Uint8List(bfh.bfSize);
 

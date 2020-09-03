@@ -3,7 +3,9 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
+import 'bitmap.dart';
 import 'machine_operations.dart';
 
 class OpCode {
@@ -66,10 +68,13 @@ class OpCode {
   }
 }
 
-enum Status {
+
+enum Operations {
+  UpdateScreen,
   Stop,
   Stopped,
   Running,
+  Communication
 }
 
 class Machine {
@@ -129,7 +134,10 @@ class Machine {
     _init();
   }
 
+  Uint8List screen;
+
   _init() {
+    screen = Uint8List(64*32);
     mem = Uint8List(4096);
     V = Uint8List(16);
     stack = Uint16List(16);
@@ -142,12 +150,13 @@ class Machine {
     st = 0;
   }
 
-  bool _handleMessage(dynamic data) {
-    if (data == Status.Stop) {
-      stop = true;
-      return true;
+  _handleMessage(dynamic data) {
+    switch(data[0]) {
+      case Operations.Stop:
+        stop = true;
+        break;
     }
-    return false;
+
   }
 
   SendPort port;
@@ -164,11 +173,13 @@ class Machine {
     }
 
     // rom loaded into machine mem debug text
-    port.send(Status.Running);
+    port.send([Operations.Running]);
 
 
     // start processing
     var duration = Duration(microseconds: 1);
+    Stopwatch watch = Stopwatch();
+    watch.start();
     while (!this.stop) {
       // message polling (kind of) cant find better way to communicate
       // with flutter isolates
@@ -187,9 +198,33 @@ class Machine {
       pc++;
 
       runOperation(this, op);
+
+      //update screen render each 16 milliseconds
+      if (watch.elapsedMilliseconds >= 16) {
+        sport.send([Operations.UpdateScreen, genImage()]);
+        watch.reset();
+      }
     }
 
     //port.send(opcodes);
-    port.send(Status.Stopped);
+    port.send([Operations.Stopped]);
+  }
+
+  var prevColor = 0;
+  Image genImage() {
+    prevColor = (prevColor + 1) % 255;
+    //use this.screen to gen the picture
+    var imageData = Uint8List(32 * 64 * 3);
+    for (int i = 0; i < 32 * 64 * 3; i += 3) {
+      imageData[i] = prevColor; //blue
+      imageData[i + 1] = 0; //green
+      imageData[i + 2] = 0; //red
+    }
+    var data = createBitmap(64, 32, imageData);
+    var img = Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
+
+    Completer<ImageProvider> completer = Completer<ImageProvider>();
+    completer.complete(img.image);
+    return img;
   }
 }

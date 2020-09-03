@@ -77,10 +77,10 @@ Map<int, OpCall> _kk_SubOperation = {
 };
 
 _debugPrint(String str) {
-  assert(() {
+  /*assert(() {
     print(str);
     return true;
-  }());
+  }());*/
 }
 
 _missing(Machine mac, OpCode op) {
