@@ -19,7 +19,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Chip 8',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
+
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
@@ -69,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
       debugInfo.clear();
       var rom = await RomLoader().loadAsset();
       _isolate =
-          await Isolate.spawn(_startEmulation, [_receivePort.sendPort, rom]);
+      await Isolate.spawn(_startEmulation, [_receivePort.sendPort, rom]);
       _receivePort.listen(_handleMessage);
       started = true;
     }
@@ -81,18 +83,16 @@ class _MyHomePageState extends State<MyHomePage> {
     ReceivePort mainToIsolateStream = ReceivePort();
     isolateToMainStream
         .send([Operations.Communication, mainToIsolateStream.sendPort]);
-    var machine = Machine();
+    final Machine machine = Machine();
     machine.run(rom, isolateToMainStream, mainToIsolateStream);
   }
 
-  var c = 0;
   void _handleMessage(dynamic data) {
-    switch(data[0]) {
+    switch (data[0]) {
       case Operations.Communication:
         _machineSender = data[1];
         break;
       case Operations.Stopped:
-        _showState();
         _receivePort.close();
         _isolate.kill(priority: Isolate.immediate);
         _isolate = null;
@@ -101,22 +101,10 @@ class _MyHomePageState extends State<MyHomePage> {
       case Operations.Running:
         break;
       case Operations.UpdateScreen:
-        _key.currentState.updateImage(data[1]);
-        print("Update screen" + c.toString());
-        c++;
+        screenData.update(data[1]);
+        // _key.currentState.updateImage(data[1]);
         break;
     }
-  }
-
-
-
-  _showState() {
-    setState(() {
-      text = "";
-      for (var i = 0; i < debugInfo.length; i++) {
-        text += debugInfo[i] + "\n";
-      }
-    });
   }
 
   void _stopSim() {
@@ -124,16 +112,21 @@ class _MyHomePageState extends State<MyHomePage> {
       _machineSender.send([Operations.Stop]);
     }
   }
-  final _key = GlobalKey<ScreenState>();
 
+  final ScreenData screenData = ScreenData();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-            child: Screen(key: _key),
-            alignment: Alignment.topCenter,
-            margin: EdgeInsets.fromLTRB(0, 60, 0, 0)),
+        body: SafeArea(
+            child: Padding(
+
+                padding: EdgeInsets.fromLTRB(10,30,10,0),
+                child: LayoutBuilder(builder: (context, constraints) {
+                  // chip 8 data is 32x64 screen so adjust to available space
+                  var h = (32 * constraints.maxWidth) / 64;
+                  return Screen(this.screenData, width: constraints.maxWidth, height: h);
+                },))),
         floatingActionButton: Row(
           children: [
             Padding(
@@ -154,6 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
           mainAxisAlignment: MainAxisAlignment.end,
         ) // This trailing comma makes auto-formatting nicer for build methods.
-        );
+    );
   }
 }

@@ -2,36 +2,21 @@
 
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import 'bitmap.dart';
 
-var _scaleFactor = 6.0;
-
-class Screen extends StatefulWidget {
-  Screen({Key key}) : super(key: key) {}
-
-  @override
-  State<Screen> createState() => ScreenState();
-}
-
-class ScreenState extends State<Screen> {
+class ScreenData extends ChangeNotifier {
   Image image;
+  BuildContext context;
 
-  updateImage(Image img) {
-    precacheImage(img.image, context).then((value) => setState(() {
-          image = img;
-        }));
+  ScreenData() {
+    this.image = _genImage();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    image = genImage();
-  }
-
-  Image genImage() {
+  Image _genImage() {
     //use this.screen to gen the picture
     var imageData = Uint8List(32 * 64 * 3);
     for (int i = 0; i < 32 * 64 * 3; i += 3) {
@@ -43,14 +28,60 @@ class ScreenState extends State<Screen> {
     return Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
   }
 
+  update(final Image img) async {
+    await precacheImage(img.image, context);
+    this.image = img;
+    notifyListeners();
+  }
+}
+
+
+class Screen extends StatefulWidget {
+  final ScreenData data;
+  final double height;
+  final double width;
+
+  Screen(this.data, {this.height, this.width});
+
+  @override
+  State<Screen> createState() => ScreenState();
+}
+
+class ScreenState extends State<Screen> {
+
+
+  Image img;
+  int fpsCount = 0;
+  Stopwatch watch;
+
+  void _onDataChange() {
+    setState(() {
+      img = this.widget.data.image;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    this.img = this.widget.data.image;
+    this.widget.data.context = this.context;
+    this.widget.data.addListener(_onDataChange);
+    watch = Stopwatch();
+    watch.start();
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    var r = Container(
-      color: Colors.black,
-      width: 64 * _scaleFactor,
-      height: 32 * _scaleFactor,
-      child: image,
-    );
-    return r;
+    fpsCount++;
+    if (watch.elapsedMilliseconds >= 1000) {
+      print("FPS=" + fpsCount.toString());
+      fpsCount = 0;
+      watch.reset();
+    }
+
+    // this is a portrait app, use all the width and calculte height
+    // context.size.width
+    return Container(child: img, width: this.widget.width, height: this.widget.height);
   }
 }

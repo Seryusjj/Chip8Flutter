@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 
-var _BITMAP_FILE_HEADER_SIZE_BYTES = 14;
-var _BITMAP_INFO_HEADER_SIZE_BYTES = 40;
+var _fileHeaderSizeBytes = 14;
+var _infoHeaderSizeBytes = 40;
 
 int _writeSize2(Uint8List res, int offset, int val) {
   res[offset] = val >> 8;
@@ -57,7 +57,7 @@ class _FileHeader {
     offset = _writeSize2(res, offset, bfReserved2);
     offset = _writeSize4(res, offset, bfOffBits);
     assert(() {
-      return offset == _BITMAP_FILE_HEADER_SIZE_BYTES;
+      return offset == _fileHeaderSizeBytes;
     }());
   }
 
@@ -68,7 +68,7 @@ class _FileHeader {
     offset = _writeSize2Reverse(res, offset, bfReserved2);
     offset = _writeSize4Reverse(res, offset, bfOffBits);
     assert(() {
-      return offset == _BITMAP_FILE_HEADER_SIZE_BYTES;
+      return offset == _fileHeaderSizeBytes;
     }());
   }
 }
@@ -99,7 +99,7 @@ class _InfoHeader {
     offset = _writeSize4(res, offset, biClrImportant);
     assert(() {
       return offset ==
-          _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+          _fileHeaderSizeBytes + _infoHeaderSizeBytes;
     }());
   }
 
@@ -117,18 +117,18 @@ class _InfoHeader {
     offset = _writeSize4Reverse(res, offset, biClrImportant);
     assert(() {
       return offset ==
-          _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+          _fileHeaderSizeBytes + _infoHeaderSizeBytes;
     }());
   }
 }
 
 Uint8List createBitmap(int w, int h, Uint8List rgb) {
   // size in bytes
-  var padding_size = (4 - (rgb.length % 4)) % 4;
+  var paddingSize = (4 - (rgb.length % 4)) % 4;
   // Uint8List 1 byte per position
   _InfoHeader bmpInfoHeader = _InfoHeader();
   var bitsPerPixel = 3 * 8;
-  bmpInfoHeader.biSize = _BITMAP_INFO_HEADER_SIZE_BYTES;
+  bmpInfoHeader.biSize = _infoHeaderSizeBytes;
   // Bit count
   bmpInfoHeader.biBitCount = bitsPerPixel;
   // Use all colors
@@ -145,25 +145,25 @@ Uint8List createBitmap(int w, int h, Uint8List rgb) {
   bmpInfoHeader.biPlanes = 1;
   // Calculate the image size in bytes
   bmpInfoHeader.biSizeImage =
-      h * ((w * (bitsPerPixel / 8).toInt()) + padding_size);
+      h * ((w * bitsPerPixel ~/ 8) + paddingSize);
 
   _FileHeader bfh = _FileHeader();
 
-  // This value should be values of BM letters
+  // This value should be values of BM letters in utf8 B=0x42 M=0x4D
   bfh.bfType = 0x4D42;
   // Offset to the RGBQUAD
   bfh.bfOffBits =
-      _BITMAP_FILE_HEADER_SIZE_BYTES + _BITMAP_INFO_HEADER_SIZE_BYTES;
+      _fileHeaderSizeBytes + _infoHeaderSizeBytes;
 
   // Total size of image including size of headers
-  bfh.bfSize = _BITMAP_FILE_HEADER_SIZE_BYTES +
-      _BITMAP_INFO_HEADER_SIZE_BYTES +
+  bfh.bfSize = _fileHeaderSizeBytes +
+      _infoHeaderSizeBytes +
       rgb.length;
 
   Uint8List res = Uint8List(bfh.bfSize);
 
   bfh.writeReverse(res, 0);
-  bmpInfoHeader.writeReverse(res, _BITMAP_FILE_HEADER_SIZE_BYTES);
+  bmpInfoHeader.writeReverse(res, _fileHeaderSizeBytes);
 
   var offset = bfh.bfOffBits;
   for (int i = 0; i < rgb.length; i++) {

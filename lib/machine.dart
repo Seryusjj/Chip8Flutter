@@ -68,17 +68,9 @@ class OpCode {
   }
 }
 
-
-enum Operations {
-  UpdateScreen,
-  Stop,
-  Stopped,
-  Running,
-  Communication
-}
+enum Operations { UpdateScreen, Stop, Stopped, Running, Communication }
 
 class Machine {
-
   Uint8List mem; // cpu available memory
   Uint16List _pc_sp_i;
   bool stop = false;
@@ -137,7 +129,7 @@ class Machine {
   Uint8List screen;
 
   _init() {
-    screen = Uint8List(64*32);
+    screen = Uint8List(64 * 32);
     mem = Uint8List(4096);
     V = Uint8List(16);
     stack = Uint16List(16);
@@ -151,12 +143,11 @@ class Machine {
   }
 
   _handleMessage(dynamic data) {
-    switch(data[0]) {
+    switch (data[0]) {
       case Operations.Stop:
         stop = true;
         break;
     }
-
   }
 
   SendPort port;
@@ -174,7 +165,6 @@ class Machine {
 
     // rom loaded into machine mem debug text
     port.send([Operations.Running]);
-
 
     // start processing
     var duration = Duration(microseconds: 1);
@@ -200,7 +190,7 @@ class Machine {
       runOperation(this, op);
 
       //update screen 60fps
-      if (watch.elapsedMilliseconds >= 16) {
+      if (watch.elapsedMilliseconds >= 30) {
         sport.send([Operations.UpdateScreen, genImage()]);
         watch.reset();
       }
@@ -211,14 +201,18 @@ class Machine {
   }
 
   var prevColor = 0;
+
   Image genImage() {
-    prevColor = (prevColor + 1) % 255;
+    prevColor++;
+    if (prevColor >= 255) {
+      prevColor = 0;
+    }
     //use this.screen to gen the picture
     var imageData = Uint8List(32 * 64 * 3);
     for (int i = 0; i < 32 * 64 * 3; i += 3) {
       imageData[i] = prevColor; //blue
       imageData[i + 1] = 0; //green
-      imageData[i + 2] = 255-prevColor; //red
+      imageData[i + 2] = 255 - prevColor; //red
     }
     var data = createBitmap(64, 32, imageData);
     var img = Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
