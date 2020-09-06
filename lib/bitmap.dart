@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'dart:typed_data';
-
+import 'dart:ui' as ui;
 
 var _fileHeaderSizeBytes = 14;
 var _infoHeaderSizeBytes = 40;
@@ -98,8 +99,7 @@ class _InfoHeader {
     offset = _writeSize4(res, offset, biClrUsed);
     offset = _writeSize4(res, offset, biClrImportant);
     assert(() {
-      return offset ==
-          _fileHeaderSizeBytes + _infoHeaderSizeBytes;
+      return offset == _fileHeaderSizeBytes + _infoHeaderSizeBytes;
     }());
   }
 
@@ -116,10 +116,17 @@ class _InfoHeader {
     offset = _writeSize4Reverse(res, offset, biClrUsed);
     offset = _writeSize4Reverse(res, offset, biClrImportant);
     assert(() {
-      return offset ==
-          _fileHeaderSizeBytes + _infoHeaderSizeBytes;
+      return offset == _fileHeaderSizeBytes + _infoHeaderSizeBytes;
     }());
   }
+}
+
+Future<ui.Image> createUIImg(int w, int h, Uint8List rgb) async {
+  // var res = createBitmap(w, h, rgb);
+  var completer = Completer<ui.Image>();
+  ui.decodeImageFromPixels(
+      rgb, w, h, ui.PixelFormat.rgba8888, (img) => completer.complete(img));
+  return completer.future;
 }
 
 Uint8List createBitmap(int w, int h, Uint8List rgb) {
@@ -144,21 +151,17 @@ Uint8List createBitmap(int w, int h, Uint8List rgb) {
   // Default number of planes
   bmpInfoHeader.biPlanes = 1;
   // Calculate the image size in bytes
-  bmpInfoHeader.biSizeImage =
-      h * ((w * bitsPerPixel ~/ 8) + paddingSize);
+  bmpInfoHeader.biSizeImage = h * ((w * bitsPerPixel ~/ 8) + paddingSize);
 
   _FileHeader bfh = _FileHeader();
 
   // This value should be values of BM letters in utf8 B=0x42 M=0x4D
   bfh.bfType = 0x4D42;
   // Offset to the RGBQUAD
-  bfh.bfOffBits =
-      _fileHeaderSizeBytes + _infoHeaderSizeBytes;
+  bfh.bfOffBits = _fileHeaderSizeBytes + _infoHeaderSizeBytes;
 
   // Total size of image including size of headers
-  bfh.bfSize = _fileHeaderSizeBytes +
-      _infoHeaderSizeBytes +
-      rgb.length;
+  bfh.bfSize = _fileHeaderSizeBytes + _infoHeaderSizeBytes + rgb.length;
 
   Uint8List res = Uint8List(bfh.bfSize);
 
@@ -170,5 +173,6 @@ Uint8List createBitmap(int w, int h, Uint8List rgb) {
     var k = i + offset;
     res[k] = rgb[i];
   }
+
   return res;
 }

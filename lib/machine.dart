@@ -189,9 +189,9 @@ class Machine {
 
       runOperation(this, op);
 
-      //update screen 60fps
-      if (watch.elapsedMilliseconds >= 30) {
-        sport.send([Operations.UpdateScreen, genImage()]);
+      //update screen 30fps
+      if (watch.elapsedMilliseconds >= 33) {
+        sport.send([Operations.UpdateScreen, genImageUI()]);
         watch.reset();
       }
     }
@@ -202,20 +202,20 @@ class Machine {
 
   var prevColor = 0;
 
-  Image genImage() {
+  Uint8List genImageUI() {
     prevColor++;
     if (prevColor >= 255) {
       prevColor = 0;
     }
     //use this.screen to gen the picture
-    var imageData = Uint8List(32 * 64 * 3);
-    for (int i = 0; i < 32 * 64 * 3; i += 3) {
-      imageData[i] = prevColor; //blue
-      imageData[i + 1] = 0; //green
-      imageData[i + 2] = 255 - prevColor; //red
+    var imageData = Uint8List(32 * 64 * 4);
+    for (int i = 0; i < 32 * 64 * 4; i += 4) {
+      imageData[i] = prevColor; //r
+      imageData[i + 1] = 0; //g
+      imageData[i + 2] = 255 - prevColor; //b
+      imageData[i + 3] = 255; //a
     }
-    var data = createBitmap(64, 32, imageData);
-    var img = Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
-    return img;
+
+    return imageData;
   }
 }

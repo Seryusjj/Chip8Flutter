@@ -43,27 +43,14 @@ class _MyHomePageState extends State<MyHomePage> {
   static List<String> debugInfo = List<String>();
   SendPort _machineSender;
   ReceivePort _receivePort;
-  String text = '';
+
   Isolate _isolate;
   bool started = false;
 
-  Image screenImage;
+  final ScreenData screenData = ScreenData();
 
-  _MyHomePageState() {
-    screenImage = genImage();
-  }
+  _MyHomePageState();
 
-  Image genImage() {
-    //use this.screen to gen the picture
-    var imageData = Uint8List(32 * 64 * 3);
-    for (int i = 0; i < 32 * 64 * 3; i += 3) {
-      imageData[i] = 0; //blue
-      imageData[i + 1] = 0; //green
-      imageData[i + 2] = 255; //red
-    }
-    var data = createBitmap(64, 32, imageData);
-    return Image.memory(data, width: 64, height: 30, fit: BoxFit.cover);
-  }
 
   void _startSim() async {
     if (!started) {
@@ -113,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  final ScreenData screenData = ScreenData();
+
 
   @override
   Widget build(BuildContext context) {
