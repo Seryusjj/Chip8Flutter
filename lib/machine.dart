@@ -3,9 +3,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 
-import 'bitmap.dart';
 import 'machine_operations.dart';
 
 class OpCode {
@@ -156,7 +154,7 @@ class Machine {
     StreamIterator<dynamic> inbox = new StreamIterator<dynamic>(recv);
     Future<bool> hasNext = inbox.moveNext();
     port = sport;
-    var op = OpCode(0);
+    final op = OpCode(0);
 
     // load rom in memory, first 512 positions are reserved
     for (var i = 0; i < rom.lengthInBytes; i++) {
@@ -167,7 +165,7 @@ class Machine {
     port.send([Operations.Running]);
 
     // start processing
-    var duration = Duration(microseconds: 1);
+    const duration = Duration(microseconds: 1);
     Stopwatch watch = Stopwatch();
     watch.start();
     while (!this.stop) {
@@ -207,9 +205,10 @@ class Machine {
     if (prevColor >= 255) {
       prevColor = 0;
     }
+    const dataLength = 32 * 64 * 4;
     //use this.screen to gen the picture
-    var imageData = Uint8List(32 * 64 * 4);
-    for (int i = 0; i < 32 * 64 * 4; i += 4) {
+    var imageData = Uint8List(dataLength);
+    for (int i = 0; i < dataLength; i += 4) {
       imageData[i] = prevColor; //r
       imageData[i + 1] = 0; //g
       imageData[i + 2] = 255 - prevColor; //b

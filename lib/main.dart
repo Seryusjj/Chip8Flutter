@@ -1,12 +1,10 @@
 import 'dart:isolate';
-import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chip_8/machine.dart';
 import 'package:flutter_chip_8/rom_loader.dart';
 
-import 'bitmap.dart';
 import 'screen.dart';
 
 void main() {
@@ -21,7 +19,6 @@ class MyApp extends StatelessWidget {
       title: 'Chip 8',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
@@ -51,14 +48,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   _MyHomePageState();
 
-
   void _startSim() async {
     if (!started) {
       _receivePort = ReceivePort();
       debugInfo.clear();
       var rom = await RomLoader().loadAsset();
       _isolate =
-      await Isolate.spawn(_startEmulation, [_receivePort.sendPort, rom]);
+          await Isolate.spawn(_startEmulation, [_receivePort.sendPort, rom]);
       _receivePort.listen(_handleMessage);
       started = true;
     }
@@ -100,20 +96,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: SafeArea(
             child: Padding(
-
-                padding: EdgeInsets.fromLTRB(10,30,10,0),
-                child: LayoutBuilder(builder: (context, constraints) {
-                  // chip 8 data is 32x64 screen so adjust to available space
-                  var h = (32 * constraints.maxWidth) / 64;
-                  return Screen(this.screenData, width: constraints.maxWidth, height: h);
-                },))),
+                padding: EdgeInsets.fromLTRB(10, 30, 10, 0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // chip 8 data is 32x64 screen so adjust to available space
+                    // and also make it a power of 2
+                    double w = (constraints.maxWidth.toInt() -
+                            (2 - (constraints.maxWidth.toInt() % 2)) % 2)
+                        .toDouble();
+                    double h =
+                        (ScreenData.designHeight * w) / ScreenData.designWidth;
+                    h = (h.toInt() - (2 - (h.toInt() % 2)) % 2).toDouble();
+                    return Screen(this.screenData, width: w, height: h);
+                  },
+                ))),
         floatingActionButton: Row(
           children: [
             Padding(
@@ -134,6 +135,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
           mainAxisAlignment: MainAxisAlignment.end,
         ) // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        );
   }
 }

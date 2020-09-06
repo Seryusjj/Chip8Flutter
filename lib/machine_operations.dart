@@ -13,14 +13,22 @@ runOperation(Machine mac, OpCode op) {
   }
 }
 
-Map<int, OpCall> _operations = {
-  0: (Machine mac, OpCode code) => {
-        // super chip extension
-        if (code.y == 0xC)
-          _missing(mac, code)
-        else
-          _kk_SubOperation[code.kk](mac, code)
-      },
+_zeroOpSelector(Machine mac, OpCode code) {
+  // super chip extension
+  if (code.y == 0xC)
+    return _missing(mac, code);
+  else
+    return _kk_SubOperation[code.kk](mac, code);
+}
+_kkSubCall(Machine mac, OpCode code) {
+  return _kk_SubOperation[code.kk](mac, code);
+}
+_nSubCall(Machine mac, OpCode code) {
+  return _n_SubOperation[code.n](mac, code);
+}
+
+const Map<int, OpCall> _operations = {
+  0: _zeroOpSelector,
   1: _jp,
   2: _call,
   3: _se_xkk,
@@ -28,17 +36,17 @@ Map<int, OpCall> _operations = {
   5: _se_xy,
   6: _ld_xkk,
   7: _add_xkk,
-  8: (Machine mac, OpCode code) => _n_SubOperation[code.n](mac, code),
+  8: _nSubCall,
   9: _sne_xy,
   0xA: _ld_innn,
   0xB: _jp_v0nnn,
   0xC: _rnd_xkk,
   0xD: _drw_xyn,
-  0xE: (Machine mac, OpCode code) => _kk_SubOperation[code.kk](mac, code),
-  0xF: (Machine mac, OpCode code) => _kk_SubOperation[code.kk](mac, code),
+  0xE: _kkSubCall,
+  0xF: _kkSubCall,
 };
 
-Map<int, OpCall> _n_SubOperation = {
+const Map<int, OpCall> _n_SubOperation = {
   0: _ld_xy,
   1: _or_xy,
   2: _and_xy,
@@ -50,7 +58,7 @@ Map<int, OpCall> _n_SubOperation = {
   0xE: _shl_x,
 };
 
-Map<int, OpCall> _kk_SubOperation = {
+const Map<int, OpCall> _kk_SubOperation = {
   0x9E: _skp_x,
   0xA1: _sknp_x,
   0x07: _ld_xdt,
