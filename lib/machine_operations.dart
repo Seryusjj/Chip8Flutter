@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'machine.dart';
 
 typedef OpCall = void Function(Machine mac, OpCode code);
@@ -20,12 +22,16 @@ _zeroOpSelector(Machine mac, OpCode code) {
   else
     return _kk_SubOperation[code.kk](mac, code);
 }
+
 _kkSubCall(Machine mac, OpCode code) {
   return _kk_SubOperation[code.kk](mac, code);
 }
+
 _nSubCall(Machine mac, OpCode code) {
   return _n_SubOperation[code.n](mac, code);
 }
+
+final _rand = Random(DateTime.now().millisecond);
 
 const Map<int, OpCall> _operations = {
   0: _zeroOpSelector,
@@ -85,10 +91,10 @@ const Map<int, OpCall> _kk_SubOperation = {
 };
 
 _debugPrint(String str) {
-  /*assert(() {
+  assert(() {
     print(str);
     return true;
-  }());*/
+  }());
 }
 
 _missing(Machine mac, OpCode op) {
@@ -96,75 +102,70 @@ _missing(Machine mac, OpCode op) {
 }
 
 _cls(Machine mac, OpCode op) {
-  _debugPrint("CLS");
+  mac.screen.clear();
 }
 
+/// oposite to call
 _ret(Machine mac, OpCode op) {
-  _debugPrint("RET");
+  mac.sp--;
+  mac.pc = mac.stack[mac.sp];
 }
 
 /// jump to nnn
 _jp(Machine mac, OpCode op) {
   mac.pc = op.nnn;
-  _debugPrint("JP ${op.nnn.toRadixString(16)}");
 }
 
+/// call nnn: tack[sp++] = pc, pc = nnn
 _call(Machine mac, OpCode op) {
-  _debugPrint("CALL ${op.nnn.toRadixString(16)}");
+  mac.stack[mac.sp] = mac.pc;
+  mac.sp++;
+  mac.pc = op.nnn;
 }
 
 /// (skip equal) SE x, kk if v[x] == KK then pc+=2;
 _se_xkk(Machine mac, OpCode op) {
   if (mac.V[op.x] == op.kk) mac.pc = (mac.pc + 2) /*& 0xFFF*/;
-  _debugPrint("SE ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
 }
 
 /// (skip if not equal) SE x, kk if v[x] != KK then pc+=2;
 _sne_xkk(Machine mac, OpCode op) {
   if (mac.V[op.x] != op.kk) mac.pc = (mac.pc + 2) /*& 0xFFF*/;
-  _debugPrint("SNE ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
 }
 
 /// (skip equal) SE x, kk if v[x] == v[x] then pc+=2;
 _se_xy(Machine mac, OpCode op) {
   if (mac.V[op.x] == mac.V[op.y]) mac.pc = (mac.pc + 2) /* & 0xFFF*/;
-  _debugPrint("SN ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// load kk on V[x]
 _ld_xkk(Machine mac, OpCode op) {
   mac.V[op.x] = op.kk;
-  _debugPrint("LD ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
 }
 
 /// add x kk no need to take carry into account but max 8bit
 _add_xkk(Machine mac, OpCode op) {
   mac.V[op.x] = (mac.V[op.x] + op.kk) /* & 0xFF*/;
-  _debugPrint("ADD ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
 }
 
 /// load V[x] = V[y]
 _ld_xy(Machine mac, OpCode op) {
   mac.V[op.x] = mac.V[op.y];
-  _debugPrint("LD ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// or V[x] = V[x] | V[y]
 _or_xy(Machine mac, OpCode op) {
   mac.V[op.x] = mac.V[op.x] | mac.V[op.y];
-  _debugPrint("OR ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// and V[x] = V[x] & V[y]
 _and_xy(Machine mac, OpCode op) {
   mac.V[op.x] = mac.V[op.x] & mac.V[op.y];
-  _debugPrint("AND ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// xor V[x] = V[x] ^ V[y]
 _xor_xy(Machine mac, OpCode op) {
   mac.V[op.x] = mac.V[op.x] ^ mac.V[op.y];
-  _debugPrint("XOR ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// add V[x] = V[x] + V[y] with carry
@@ -174,66 +175,74 @@ _add_xy(Machine mac, OpCode op) {
   // set carry
   mac.V[0xF] = mac.V[op.x] > r ? 1 : 0;
   mac.V[op.x] = r;
-  _debugPrint("ADD ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// sub V[x] = V[x] - V[y] with carry
 _sub_xy(Machine mac, OpCode op) {
   mac.V[0xF] = mac.V[op.x] > mac.V[op.y] ? 1 : 0;
   mac.V[op.x] = mac.V[op.x] - mac.V[op.y];
-  _debugPrint("SUB ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// shr V[x] = V[x] >> 1 (this is sames as v[x] /=2) with carry
 _shr_x(Machine mac, OpCode op) {
   mac.V[0xF] = (mac.V[op.x] & 0x01) != 0 ? 1 : 0;
   mac.V[op.x] = mac.V[op.x] >> 1;
-  _debugPrint("SHR ${op.x.toRadixString(16)}, 1");
 }
 
 /// subn x y => sub V[x] = V[y] - V[x] with carry
 _subn_xy(Machine mac, OpCode op) {
   mac.V[0xF] = mac.V[op.y] > mac.V[op.x] ? 1 : 0;
   mac.V[op.x] = mac.V[op.y] - mac.V[op.x];
-  _debugPrint("SUBN ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// shl V[x] = V[x] << 1 (this is sames as v[x] *=2) with carry
 _shl_x(Machine mac, OpCode op) {
   mac.V[0xF] = (mac.V[op.x] & 0x80) != 0 ? 1 : 0;
   mac.V[op.x] = mac.V[op.x] << 1;
-  _debugPrint("SHL ${op.x.toRadixString(16)}, 1");
 }
 
 /// sne x, y -> v[x] != v[y] -> pc+=2
 _sne_xy(Machine mac, OpCode op) {
   if (mac.V[op.x] != mac.V[op.y]) mac.pc = (mac.pc + 2) /*& 0xFFF*/;
-  _debugPrint("SNE ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}");
 }
 
 /// LD I, nnn -> I = nnn
 _ld_innn(Machine mac, OpCode op) {
-  mac.i = op.nnn;
-  _debugPrint("LD I, ${op.nnn.toRadixString(16)}");
+  mac.I = op.nnn;
 }
 
 _jp_v0nnn(Machine mac, OpCode op) {
   mac.pc = (mac.V[0] + op.nnn) & 0xFFF;
-  _debugPrint("JP V[0], ${op.nnn.toRadixString(16)}");
 }
 
+/// RND x, kk -> V[x] = random() % kk
 _rnd_xkk(Machine mac, OpCode op) {
-  print("RND ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
-  _debugPrint("RND ${op.x.toRadixString(16)}, ${op.kk.toRadixString(16)}");
+  mac.V[op.x] = _rand.nextInt(op.kk + 1);
 }
 
+/// print sprite from [I] on screen at v[x] v[y] position
 _drw_xyn(Machine mac, OpCode op) {
   // super chip extension
   if (op.n == 0) {
     _missing(mac, op);
   } else {
-    _debugPrint(
-        "DRW ${op.x.toRadixString(16)}, ${op.y.toRadixString(16)}, ${op.n.toRadixString(16)}");
+    //clean carry
+    mac.V[0xF] = 0;
+    // rows
+    for (int i = 0; i < op.n; i++) {
+      int sprite = mac.mem[mac.I + i];
+      // columns
+      for (int j = 0; j < 8; j++) {
+        int px = (mac.V[op.x] + j) & 63; // same as % 64
+        int py = (mac.V[op.y] + i) & 31; // same as % 32
+        // turn on off the pixel in the sprite
+        int pos = 64 * py + px;
+        int pixel = (sprite & (1 << (7 - j))) != 0 ? 1 : 0;
+
+        mac.V[0xF] |= (mac.screen[pos] & pixel);
+        mac.screen[pos] ^= pixel;
+      }
+    }
   }
 }
 
@@ -248,7 +257,6 @@ _sknp_x(Machine mac, OpCode op) {
 /// LD -> v[x] = DT
 _ld_xdt(Machine mac, OpCode op) {
   mac.V[op.x] = mac.dt;
-  _debugPrint("LD x=${op.x.toRadixString(16)}, dt=${mac.dt.toRadixString(16)}");
 }
 
 _ld_xk(Machine mac, OpCode op) {
@@ -258,33 +266,36 @@ _ld_xk(Machine mac, OpCode op) {
 /// LD -> DT = v[x]
 _ld_dtx(Machine mac, OpCode op) {
   mac.dt = mac.V[op.x];
-  _debugPrint("LD dt=${mac.dt.toRadixString(16)}, x=${op.x.toRadixString(16)}");
 }
 
 /// LD -> ST = v[x]
 _ld_stx(Machine mac, OpCode op) {
   mac.st = mac.V[op.x];
-  _debugPrint("LD st=${mac.st.toRadixString(16)}, x=${op.x.toRadixString(16)}");
 }
 
 /// add I, v[x]
 _add_ix(Machine mac, OpCode op) {
-  mac.i += mac.V[op.x];
-  _debugPrint("ADD I=${mac.i.toRadixString(16)}, x=${op.x.toRadixString(16)}");
+  mac.I += mac.V[op.x];
 }
 
 _ld_fx(Machine mac, OpCode op) {
-  _debugPrint("LD F, ${op.x.toRadixString(16)}");
+  mac.I = 0x50 + mac.V[op.x] * 5;
 }
 
 _ld_bx(Machine mac, OpCode op) {
   _debugPrint("LD B, ${op.x.toRadixString(16)}");
 }
 
+/// LD [I], V[x]
 _ld_ix(Machine mac, OpCode op) {
-  _debugPrint("LD [I], ${op.x.toRadixString(16)}");
+  for (int reg = 0; reg <= op.x; reg++) {
+    mac.mem[mac.I + reg] = mac.V[reg];
+  }
 }
 
+/// LD V[x], [I]
 _ld_xi(Machine mac, OpCode op) {
-  _debugPrint("LD ${op.x.toRadixString(16)}, [I]");
+  for (int reg = 0; reg <= op.x; reg++) {
+    mac.V[reg] = mac.mem[mac.I + reg];
+  }
 }

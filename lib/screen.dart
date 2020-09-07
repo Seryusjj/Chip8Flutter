@@ -101,7 +101,7 @@ class ImagePainter extends CustomPainter {
       assert(() {
         _frames++;
         if (_watch.elapsedMilliseconds >= 1000) {
-          print("FPS=" + _frames.toString());
+          // print("FPS=" + _frames.toString());
           _watch.reset();
           _frames = 0;
         }

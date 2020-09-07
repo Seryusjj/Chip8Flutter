@@ -99,42 +99,42 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: SafeArea(
-            child: Padding(
-                padding: EdgeInsets.fromLTRB(10, 30, 10, 0),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // chip 8 data is 32x64 screen so adjust to available space
-                    // and also make it a power of 2
-                    double w = (constraints.maxWidth.toInt() -
-                            (2 - (constraints.maxWidth.toInt() % 2)) % 2)
-                        .toDouble();
-                    double h =
-                        (ScreenData.designHeight * w) / ScreenData.designWidth;
-                    h = (h.toInt() - (2 - (h.toInt() % 2)) % 2).toDouble();
-                    return Screen(this.screenData, width: w, height: h);
-                  },
-                ))),
-        floatingActionButton: Row(
-          children: [
-            Padding(
+      body: SafeArea(
+          child: Padding(
+              padding: EdgeInsets.fromLTRB(10, 30, 10, 0),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // chip 8 data is 32x64 screen so adjust to available space
+                  // and also make it a power of 2
+                  double w = (constraints.maxWidth.toInt() -
+                          (2 - (constraints.maxWidth.toInt() % 2)) % 2)
+                      .toDouble();
+                  double h =
+                      (ScreenData.designHeight * w) / ScreenData.designWidth;
+                  h = (h.toInt() - (2 - (h.toInt() % 2)) % 2).toDouble();
+                  return Screen(this.screenData, width: w, height: h);
+                },
+              ))),
+      floatingActionButton: Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(2.0),
+            child: FloatingActionButton(
+                onPressed: _startSim,
+                tooltip: 'Start',
+                backgroundColor: Colors.green,
+                child: Icon(Icons.play_arrow)),
+          ),
+          Padding(
               padding: EdgeInsets.all(2.0),
               child: FloatingActionButton(
-                  onPressed: _startSim,
-                  tooltip: 'Start',
-                  backgroundColor: Colors.green,
-                  child: Icon(Icons.play_arrow)),
-            ),
-            Padding(
-                padding: EdgeInsets.all(2.0),
-                child: FloatingActionButton(
-                    onPressed: _stopSim,
-                    backgroundColor: Colors.red,
-                    tooltip: 'Stop',
-                    child: Icon(Icons.stop))),
-          ],
-          mainAxisAlignment: MainAxisAlignment.end,
-        ) // This trailing comma makes auto-formatting nicer for build methods.
-        );
+                  onPressed: _stopSim,
+                  backgroundColor: Colors.red,
+                  tooltip: 'Stop',
+                  child: Icon(Icons.stop))),
+        ],
+        mainAxisAlignment: MainAxisAlignment.end,
+      ),
+    );
   }
 }

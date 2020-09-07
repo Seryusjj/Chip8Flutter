@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'machine_operations.dart';
@@ -68,6 +70,25 @@ class OpCode {
 
 enum Operations { UpdateScreen, Stop, Stopped, Running, Communication }
 
+const _hexCodes = [
+  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+  0x20, 0x60, 0x20, 0x20, 0x70, // 1
+  0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+  0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+  0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+  0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+  0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+  0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+  0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+  0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+  0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+  0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+  0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+  0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+  0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+  0xF0, 0x80, 0xF0, 0x80, 0x80 // F
+];
+
 class Machine {
   Uint8List mem; // cpu available memory
   Uint16List _pc_sp_i;
@@ -94,12 +115,12 @@ class Machine {
 
   Uint8List V; // 16 registries for general purpose
   // special directional registry
-  int get i {
-    return _pc_sp_i[1];
+  int get I {
+    return _pc_sp_i[2];
   }
 
-  set i(int val) {
-    _pc_sp_i[1] = val;
+  set I(int val) {
+    _pc_sp_i[2] = val;
   }
 
   // 8 bit registers
@@ -129,12 +150,15 @@ class Machine {
   _init() {
     screen = Uint8List(64 * 32);
     mem = Uint8List(4096);
+    for (int i = 0; i < _hexCodes.length; i++) {
+      mem[i + 0x50] = _hexCodes[i];
+    }
     V = Uint8List(16);
     stack = Uint16List(16);
-    _pc_sp_i = Uint16List(2); //0 pc, 1 sp
+    _pc_sp_i = Uint16List(3); //0 pc, 1 sp, 2 I
     pc = 0x200;
     sp = 0;
-    i = 0;
+    I = 0;
     _dt_st = Uint8List(2);
     dt = 0;
     st = 0;
@@ -164,8 +188,8 @@ class Machine {
     // rom loaded into machine mem debug text
     port.send([Operations.Running]);
 
-    // start processing
-    const duration = Duration(microseconds: 1);
+    // start processing, run 60 instructions per second
+    const duration = Duration(milliseconds: 16);
     Stopwatch watch = Stopwatch();
     watch.start();
     while (!this.stop) {
@@ -187,32 +211,36 @@ class Machine {
 
       runOperation(this, op);
 
-      //update screen 30fps
-      if (watch.elapsedMilliseconds >= 33) {
-        sport.send([Operations.UpdateScreen, genImageUI()]);
-        watch.reset();
-      }
+      //update screen 30fps assuming the frame was painted (we will never know)
+      // if (watch.elapsedMilliseconds >= 33) {
+      sport.send([Operations.UpdateScreen, genImageUI(screen)]);
+      watch.reset();
+      // }
     }
 
     //port.send(opcodes);
     port.send([Operations.Stopped]);
   }
 
-  var prevColor = 0;
-
-  Uint8List genImageUI() {
-    prevColor++;
-    if (prevColor >= 255) {
-      prevColor = 0;
-    }
+  Uint8List genImageUI(Uint8List screen) {
     const dataLength = 32 * 64 * 4;
     //use this.screen to gen the picture
     var imageData = Uint8List(dataLength);
-    for (int i = 0; i < dataLength; i += 4) {
-      imageData[i] = prevColor; //r
-      imageData[i + 1] = 0; //g
-      imageData[i + 2] = 255 - prevColor; //b
-      imageData[i + 3] = 255; //a
+    var c = 0;
+    for (int i = 0; i < screen.length; i++) {
+      if (screen[i] == 1) {
+        imageData[c] = 255; //r
+        imageData[c + 1] = 255; //g
+        imageData[c + 2] = 255; //b
+        imageData[c + 3] = 255; //a
+      } else {
+        imageData[c] = 0; //r
+        imageData[c + 1] = 0; //g
+        imageData[c + 2] = 0; //b
+        imageData[c + 3] = 255; //a
+      }
+
+      c += 4;
     }
 
     return imageData;
