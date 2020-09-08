@@ -46,11 +46,27 @@ class _MyHomePageState extends State<MyHomePage> {
   bool started = false;
 
   final ScreenData screenData = ScreenData();
+  final KeyData keyData = KeyData();
+
+
+  @override
+  void initState() {
+    keyData.addListener(_onKeyPressed);
+  }
 
   _MyHomePageState();
 
+  void _onKeyPressed() {
+    // do something with the pressed key
+    if (keyData.key != null)
+      print('key was pressed');
+    else
+      print('key was released');
+  }
+
   void _startSim() async {
     if (!started) {
+
       _receivePort = ReceivePort();
       debugInfo.clear();
       var rom = await RomLoader().loadAsset();
@@ -69,6 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .send([Operations.Communication, mainToIsolateStream.sendPort]);
     final Machine machine = Machine();
     machine.run(rom, isolateToMainStream, mainToIsolateStream);
+
   }
 
   void _handleMessage(dynamic data) {
@@ -123,7 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     var l = constraints.maxWidth * 0.75;
 
                     return Container(
-                      child: Controller(),
+                      child: Controller(keyData),
                       width: l,
                       height: l,
                     );
@@ -152,4 +169,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
+
 }
