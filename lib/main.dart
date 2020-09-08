@@ -2,6 +2,7 @@ import 'dart:isolate';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chip_8/controller.dart';
 import 'package:flutter_chip_8/machine.dart';
 import 'package:flutter_chip_8/rom_loader.dart';
 
@@ -102,19 +103,33 @@ class _MyHomePageState extends State<MyHomePage> {
       body: SafeArea(
           child: Padding(
               padding: EdgeInsets.fromLTRB(10, 30, 10, 0),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // chip 8 data is 32x64 screen so adjust to available space
-                  // and also make it a power of 2
-                  double w = (constraints.maxWidth.toInt() -
-                          (2 - (constraints.maxWidth.toInt() % 2)) % 2)
-                      .toDouble();
-                  double h =
-                      (ScreenData.designHeight * w) / ScreenData.designWidth;
-                  h = (h.toInt() - (2 - (h.toInt() % 2)) % 2).toDouble();
-                  return Screen(this.screenData, width: w, height: h);
-                },
-              ))),
+              child: Column(children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // chip 8 data is 32x64 screen so adjust to available space
+                    // and also make it a power of 2
+                    double w = (constraints.maxWidth.toInt() -
+                            (2 - (constraints.maxWidth.toInt() % 2)) % 2)
+                        .toDouble();
+                    double h =
+                        (ScreenData.designHeight * w) / ScreenData.designWidth;
+                    h = (h.toInt() - (2 - (h.toInt() % 2)) % 2).toDouble();
+                    return Screen(this.screenData, width: w, height: h);
+                  },
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10, 30, 10, 0),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    var l = constraints.maxWidth * 0.75;
+
+                    return Container(
+                      child: Controller(),
+                      width: l,
+                      height: l,
+                    );
+                  }),
+                )
+              ]))),
       floatingActionButton: Row(
         children: [
           Padding(
