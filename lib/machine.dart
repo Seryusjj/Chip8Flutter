@@ -210,10 +210,10 @@ class Machine {
       runOperation(this, op);
 
       //update screen 30fps assuming the frame was painted (we will never know)
-      if (watch.elapsedMilliseconds >= 30) {
+      if (watch.elapsedMilliseconds >= 16) {
+        sport.send([Operations.UpdateScreen, genImageUI(screen)]);
         if (dt > 0) dt--;
         if (st > 0) st--;
-        sport.send([Operations.UpdateScreen, genImageUI(screen)]);
         watch.reset();
       }
     }
