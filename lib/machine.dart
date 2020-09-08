@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'machine_operations.dart';
@@ -86,7 +84,7 @@ const _hexCodes = [
   0xF0, 0x80, 0x80, 0x80, 0xF0, // C
   0xE0, 0x90, 0x90, 0x90, 0xE0, // D
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-  0xF0, 0x80, 0xF0, 0x80, 0x80 // F
+  0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
 
 class Machine {
@@ -189,7 +187,7 @@ class Machine {
     port.send([Operations.Running]);
 
     // start processing, run 60 instructions per second
-    const duration = Duration(milliseconds: 16);
+    const duration = Duration(microseconds: 1);
     Stopwatch watch = Stopwatch();
     watch.start();
     while (!this.stop) {
@@ -205,17 +203,19 @@ class Machine {
       }
       // opcodes are made of 16 bits, memory is made of 8,
       // so two mem entries = 1 opcode
-      op.value = mem[pc] << 8 | mem[++pc];
+      op.value = mem[pc] << 8 | mem[pc + 1];
       // opcodes += op.value.toRadixString(16);
-      pc++;
+      pc += 2;
 
       runOperation(this, op);
 
       //update screen 30fps assuming the frame was painted (we will never know)
-      // if (watch.elapsedMilliseconds >= 33) {
-      sport.send([Operations.UpdateScreen, genImageUI(screen)]);
-      watch.reset();
-      // }
+      if (watch.elapsedMilliseconds >= 30) {
+        if (dt > 0) dt--;
+        if (st > 0) st--;
+        sport.send([Operations.UpdateScreen, genImageUI(screen)]);
+        watch.reset();
+      }
     }
 
     //port.send(opcodes);

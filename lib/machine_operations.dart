@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'machine.dart';
 
@@ -102,13 +103,13 @@ _missing(Machine mac, OpCode op) {
 }
 
 _cls(Machine mac, OpCode op) {
-  mac.screen.clear();
+  mac.screen = Uint8List(64 * 32);
 }
 
 /// oposite to call
 _ret(Machine mac, OpCode op) {
-  mac.sp--;
   mac.pc = mac.stack[mac.sp];
+  mac.sp--;
 }
 
 /// jump to nnn
@@ -118,8 +119,8 @@ _jp(Machine mac, OpCode op) {
 
 /// call nnn: tack[sp++] = pc, pc = nnn
 _call(Machine mac, OpCode op) {
-  mac.stack[mac.sp] = mac.pc;
   mac.sp++;
+  mac.stack[mac.sp] = mac.pc;
   mac.pc = op.nnn;
 }
 
@@ -170,7 +171,7 @@ _xor_xy(Machine mac, OpCode op) {
 
 /// add V[x] = V[x] + V[y] with carry
 _add_xy(Machine mac, OpCode op) {
-  // flutter int is 64 we need 16 bit
+  // flutter int is 64 we need 8 bit
   int r = (mac.V[op.x] + mac.V[op.y]) & 0xFF;
   // set carry
   mac.V[0xF] = mac.V[op.x] > r ? 1 : 0;
@@ -282,8 +283,12 @@ _ld_fx(Machine mac, OpCode op) {
   mac.I = 0x50 + mac.V[op.x] * 5;
 }
 
+/// LD B, V[x] -> load BCD number in mem
 _ld_bx(Machine mac, OpCode op) {
-  _debugPrint("LD B, ${op.x.toRadixString(16)}");
+  int num = mac.V[op.x];
+  mac.mem[mac.I + 2] = num % 10; //units
+  mac.mem[mac.I + 1] = (num ~/ 10) % 10; //tens
+  mac.mem[mac.I] = num ~/ 100; //hundreds
 }
 
 /// LD [I], V[x]
