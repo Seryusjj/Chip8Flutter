@@ -59,9 +59,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onKeyPressed() {
     // do something with the pressed key
     if (keyData.key != null)
-      print('key was pressed');
+      _machineSender.send([Operations.KeyDown, keyData.key]);
     else
-      print('key was released');
+      _machineSender.send([Operations.KeyUp]);
   }
 
   void _startSim() async {

@@ -66,7 +66,15 @@ class OpCode {
   }
 }
 
-enum Operations { UpdateScreen, Stop, Stopped, Running, Communication }
+enum Operations {
+  UpdateScreen,
+  Stop,
+  Stopped,
+  Running,
+  Communication,
+  KeyDown,
+  KeyUp
+}
 
 const _hexCodes = [
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -162,10 +170,20 @@ class Machine {
     st = 0;
   }
 
+  int keyPressed = null;
+
+  int waitForKey = -1;
+
   _handleMessage(dynamic data) {
     switch (data[0]) {
       case Operations.Stop:
         stop = true;
+        break;
+      case Operations.KeyDown:
+        keyPressed = data[1];
+        break;
+      case Operations.KeyUp:
+        keyPressed = null;
         break;
     }
   }
@@ -186,36 +204,54 @@ class Machine {
     // rom loaded into machine mem debug text
     port.send([Operations.Running]);
 
-    // start processing, run 60 instructions per second
-    const duration = Duration(microseconds: 1);
-    Stopwatch watch = Stopwatch();
-    watch.start();
+    //screen timer
+    Stopwatch screenRefresh = Stopwatch();
+    screenRefresh.start();
+
+    // we aim for 700mhz so that is 0.7cycles per millisecond
+    // or 1 cycle each 1700 microseconds
+    Stopwatch cycleTime = Stopwatch();
+    cycleTime.start();
+
+    const int microsPerCycle = 1800;
+    int sleepMicroseconds = 1;
     while (!this.stop) {
       // message polling (kind of) cant find better way to communicate
       // with flutter isolates
-      while (await hasNext.timeout(duration, onTimeout: () => false)) {
+      while (await hasNext.timeout(Duration(microseconds: sleepMicroseconds),
+          onTimeout: () => false)) {
         _handleMessage(inbox.current);
         hasNext = inbox.moveNext();
       }
 
-      if (pc >= mem.length - 1) {
-        pc = 0x200;
-      }
-      // opcodes are made of 16 bits, memory is made of 8,
-      // so two mem entries = 1 opcode
-      op.value = mem[pc] << 8 | mem[pc + 1];
-      // opcodes += op.value.toRadixString(16);
-      pc += 2;
+      if (waitForKey == -1) {
+        if (pc >= mem.length - 1) {
+          pc = 0x200;
+        }
+        // opcodes are made of 16 bits, memory is made of 8,
+        // so two mem entries = 1 opcode
+        op.value = mem[pc] << 8 | mem[pc + 1];
+        // opcodes += op.value.toRadixString(16);
+        pc += 2;
 
-      runOperation(this, op);
-
-      //update screen 30fps assuming the frame was painted (we will never know)
-      if (watch.elapsedMilliseconds >= 16) {
-        sport.send([Operations.UpdateScreen, genImageUI(screen)]);
-        if (dt > 0) dt--;
-        if (st > 0) st--;
-        watch.reset();
+        runOperation(this, op);
+        //update screen 60fps chip 8 screen is 60 Hz
+        if (screenRefresh.elapsedMilliseconds >= 16) {
+          sport.send([Operations.UpdateScreen, genImageUI(screen)]);
+          if (dt > 0) dt--;
+          if (st > 0) st--;
+          screenRefresh.reset();
+        }
+      } else {
+        if (keyPressed != null) {
+          V[waitForKey] = keyPressed;
+          waitForKey = -1;
+        }
       }
+
+      sleepMicroseconds = microsPerCycle - cycleTime.elapsedMicroseconds;
+      sleepMicroseconds = sleepMicroseconds < 0 ? 0 : sleepMicroseconds;
+      cycleTime.reset();
     }
 
     //port.send(opcodes);

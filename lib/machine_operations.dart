@@ -248,11 +248,11 @@ _drw_xyn(Machine mac, OpCode op) {
 }
 
 _skp_x(Machine mac, OpCode op) {
-  _debugPrint("SKP ${op.x.toRadixString(16)}");
+  if (mac.V[op.x] == mac.keyPressed) mac.pc += 2;
 }
 
 _sknp_x(Machine mac, OpCode op) {
-  _debugPrint("SKNP ${op.x.toRadixString(16)}");
+  if (mac.V[op.x] != mac.keyPressed) mac.pc += 2;
 }
 
 /// LD -> v[x] = DT
@@ -261,7 +261,7 @@ _ld_xdt(Machine mac, OpCode op) {
 }
 
 _ld_xk(Machine mac, OpCode op) {
-  _debugPrint("LD ${op.x.toRadixString(16)}, K");
+  mac.waitForKey = op.x;
 }
 
 /// LD -> DT = v[x]
