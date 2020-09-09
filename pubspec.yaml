@@ -46,7 +46,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/res/Pong_Paul_Vervalin_1990.ch8
     - assets/res/Space_Invaders_David_Winter.ch8
 
   # To add assets to your application, add an assets section, like this:

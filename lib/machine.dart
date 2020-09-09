@@ -208,16 +208,18 @@ class Machine {
     Stopwatch screenRefresh = Stopwatch();
     screenRefresh.start();
 
-    // we aim for 700mhz so that is 0.7cycles per millisecond
-    // or 1 cycle each 1700 microseconds
+    //cycle timer
     Stopwatch cycleTime = Stopwatch();
     cycleTime.start();
 
+    // we aim for 800hz so that is 0.8cycles per millisecond
+    // or 1 cycle each 1800 microseconds
     const int microsPerCycle = 1800;
     int sleepMicroseconds = 1;
+
     while (!this.stop) {
-      // message polling (kind of) cant find better way to communicate
-      // with flutter isolates
+
+      // sleep to match the desired frequency and also read events
       while (await hasNext.timeout(Duration(microseconds: sleepMicroseconds),
           onTimeout: () => false)) {
         _handleMessage(inbox.current);
@@ -250,11 +252,10 @@ class Machine {
       }
 
       sleepMicroseconds = microsPerCycle - cycleTime.elapsedMicroseconds;
-      sleepMicroseconds = sleepMicroseconds < 0 ? 0 : sleepMicroseconds;
+      sleepMicroseconds = sleepMicroseconds < 0 ? 1 : sleepMicroseconds;
       cycleTime.reset();
     }
 
-    //port.send(opcodes);
     port.send([Operations.Stopped]);
   }
 

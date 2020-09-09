@@ -66,7 +66,6 @@ class ImagePainter extends CustomPainter {
   final ScreenData data;
   final Offset offset = Offset(0, 0);
   final Paint p = Paint();
-  int _frames = 0;
   final Stopwatch _watch = Stopwatch();
 
   ImagePainter(this.data) : super(repaint: data) {
@@ -96,18 +95,6 @@ class ImagePainter extends CustomPainter {
 
     if (data.image != null) {
       canvas.drawImageRect(data.image, inputSubRect, outputSubRect, p);
-
-      // dirty hack to have this code only on debug
-      assert(() {
-        _frames++;
-        if (_watch.elapsedMilliseconds >= 1000) {
-          // print("FPS=" + _frames.toString());
-          _watch.reset();
-          _frames = 0;
-        }
-        return true;
-      }());
-
     }
   }
 
